@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (C) 2007-2010 Søren Roug, European Environment Agency
 #
@@ -24,9 +24,9 @@
 #
 import xml.dom
 from xml.dom.minicompat import *
-from namespaces import nsdict
-import grammar
-from attrconverters import AttrConverters
+from .namespaces import nsdict
+from . import grammar
+from .attrconverters import AttrConverters
 
 # The following code is pasted form xml.sax.saxutils
 # Tt makes it possible to run the code without the xml sax package installed
@@ -36,7 +36,6 @@ from attrconverters import AttrConverters
 
 def _escape(data, entities={}):
     """ Escape &, <, and > in a string of data.
-
         You can escape other strings of data by passing a dictionary as
         the optional entities parameter.  The keys and values must all be
         strings; each key will be replaced with its corresponding value.
@@ -44,18 +43,16 @@ def _escape(data, entities={}):
     data = data.replace("&", "&amp;")
     data = data.replace("<", "&lt;")
     data = data.replace(">", "&gt;")
-    for chars, entity in entities.items():
+    for chars, entity in list(entities.items()):
         data = data.replace(chars, entity)
     return data
 
 
 def _quoteattr(data, entities={}):
     """ Escape and quote an attribute value.
-
         Escape &, <, and > in a string of data, then quote it for use as
         an attribute value.  The \" character will be escaped as well, if
         necessary.
-
         You can escape other strings of data by passing a dictionary as
         the optional entities parameter.  The keys and values must all be
         strings; each key will be replaced with its corresponding value.
@@ -195,8 +192,8 @@ class Node(xml.dom.Node):
     def __unicode__(self):
         val = []
         for c in self.childNodes:
-            val.append(unicode(c))
-        return u''.join(val)
+            val.append(str(c))
+        return ''.join(val)
 
 
 defproperty(Node, "firstChild", doc="First child node, or None.")
@@ -270,7 +267,7 @@ class Text(Childless, Node):
     def toXml(self, level, f):
         """ Write XML in UTF-8 """
         if self.data:
-            f.write(_escape(unicode(self.data).encode('utf-8')))
+            f.write(_escape(str(self.data).encode('utf-8')))
 
 
 class CDATASection(Childless, Text):
@@ -326,18 +323,18 @@ class Element(Node):
         self.attributes = {}
         # Load the attributes from the 'attributes' argument
         if attributes:
-            for attr, value in attributes.items():
+            for attr, value in list(attributes.items()):
                 self.setAttribute(attr, value)
         # Load the qualified attributes
         if qattributes:
-            for attr, value in qattributes.items():
+            for attr, value in list(qattributes.items()):
                 self.setAttrNS(attr[0], attr[1], value)
         if allowed_attrs is not None:
             # Load the attributes from the 'args' argument
-            for arg in args.keys():
+            for arg in list(args.keys()):
                 self.setAttribute(arg, args[arg])
         else:
-            for arg in args.keys():  # If any attribute is allowed
+            for arg in list(args.keys()):  # If any attribute is allowed
                 self.attributes[arg] = args[arg]
         if not check_grammar:
             return
@@ -356,7 +353,7 @@ class Element(Node):
             we need to know which namespace it resolves to.
         """
         global nsdict
-        for ns, p in nsdict.items():
+        for ns, p in list(nsdict.items()):
             if p == prefix:
                 return ns
         return None
@@ -382,7 +379,6 @@ class Element(Node):
 
     def addElement(self, element, check_grammar=True):
         """ adds an element to an Element
-
             Element.addElement(Element)
         """
         if check_grammar and self.allowed_children is not None:
@@ -506,17 +502,14 @@ class Element(Node):
     def write_open_tag(self, level, f):
         f.write('<' + self.tagName)
         if level == 0:
-            for namespace, prefix in self.namespaces.items():
+            for namespace, prefix in list(self.namespaces.items()):
                 f.write(' xmlns:' + prefix + '="' +
                         _escape(str(namespace)) + '"')
-        for qname in self.attributes.keys():
+        for qname in list(self.attributes.keys()):
             prefix = self.get_nsprefix(qname[0])
-            f.write(' ' +
-                    _escape(str(prefix +
-                                ':' +
-                                qname[1])) +
-                    '=' +
-                    _quoteattr(unicode(self.attributes[qname]).encode('utf-8')))
+            f.write(
+                ' ' + _escape(str(prefix + ':' + qname[1])) + '=' +
+                _quoteattr(str(self.attributes[qname]).encode('utf-8')))
         f.write('>')
 
     def write_close_tag(self, level, f):
@@ -526,17 +519,14 @@ class Element(Node):
         """ Generate XML stream out of the tree structure """
         f.write('<' + self.tagName)
         if level == 0:
-            for namespace, prefix in self.namespaces.items():
+            for namespace, prefix in list(self.namespaces.items()):
                 f.write(' xmlns:' + prefix + '="' +
                         _escape(str(namespace)) + '"')
-        for qname in self.attributes.keys():
+        for qname in list(self.attributes.keys()):
             prefix = self.get_nsprefix(qname[0])
-            f.write(' ' +
-                    _escape(str(prefix +
-                                ':' +
-                                qname[1])) +
-                    '=' +
-                    _quoteattr(unicode(self.attributes[qname]).encode('utf-8')))
+            f.write(
+                ' ' + _escape(str(prefix + ':' + qname[1])) + '=' +
+                _quoteattr(str(self.attributes[qname]).encode('utf-8')))
         if self.childNodes:
             f.write('>')
             for element in self.childNodes:

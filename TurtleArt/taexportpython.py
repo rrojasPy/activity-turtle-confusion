@@ -26,19 +26,19 @@ from os import linesep
 from os import path, pardir
 import re
 import traceback
-import util.codegen as codegen
+from .util import codegen
 
 # from ast_pprint import * # only used for debugging, safe to comment out
 
-from talogo import LogoCode
-from taprimitive import (ast_yield_true, Primitive, PyExportError,
-                         value_to_ast)
-from tautils import (find_group, find_top_block, get_stack_name)
-from tawindow import plugins_in_use
+from .talogo import LogoCode
+from .taprimitive import (ast_yield_true, Primitive, PyExportError,
+                          value_to_ast)
+from .tautils import (find_group, find_top_block, get_stack_name)
+from .tawindow import plugins_in_use
 
 
 _SETUP_CODE_START = """\
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 _INSTALL_PATH = '/usr/share/sugar/activities/TurtleArt.activity'
@@ -69,7 +69,7 @@ for path in paths:
             sys.path.insert(0, p)
 
 if not flag:
-    print 'This code require the Turtle Blocks/Bots activity to be installed.'
+    print('This code require the Turtle Blocks/Bots activity to be installed.')
     exit(1)
 
 from time import *
@@ -95,8 +95,8 @@ _SETUP_CODE_END = """\
 if __name__ == '__main__':
     tw.lc.start_time = time()
     tw.lc.icall(start)
-    gobject.idle_add(tw.lc.doevalstep)
-    gtk.main()
+    GObject.idle_add(tw.lc.doevalstep)
+    Gtk.main()
 """
 _ACTION_STACK_START = """\
 def %s():
@@ -162,7 +162,7 @@ def _action_stack_to_python(block, tw, name='start'):
 
     if isinstance(name, int):
         name = float(name)
-    if not isinstance(name, basestring):
+    if not isinstance(name, str):
         name = str(name)
 
     # traverse the block stack and get the AST for every block
@@ -279,8 +279,8 @@ def _walk_action_stack(top_block, lc, convert_me=True):
                 # body of conditional or loop
                 new_arg_asts = _walk_action_stack(conn, lc,
                                                   convert_me=convert_me)
-                if (prim == LogoCode.prim_loop and
-                        not isinstance(new_arg_asts[-1], ast.Yield)):
+                if prim == LogoCode.prim_loop and not \
+                        isinstance(new_arg_asts[-1], ast.Yield):
                     new_arg_asts.append(ast_yield_true())
                 arg_asts.append(new_arg_asts)
             else:

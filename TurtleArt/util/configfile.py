@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (c) 2011 Collabora Ltd. <http://www.collabora.co.uk/>
 # This library is free software; you can redistribute it and/or
@@ -20,13 +20,12 @@ from gi.repository import GObject
 
 
 class ConfigFile(GObject.GObject):
-
     """Load/save a simple (key = value) config file"""
 
     __gsignals__ = {
-        'configuration-loaded': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE,
+        'configuration-loaded': (GObject.SignalFlags.RUN_FIRST, None,
                                  ()),
-        'configuration-saved': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE,
+        'configuration-saved': (GObject.SignalFlags.RUN_FIRST, None,
                                 ()),
     }
 
@@ -89,25 +88,25 @@ class ConfigFile(GObject.GObject):
             self._is_loaded = True
             self.emit('configuration-loaded')
         except Exception as e:
-            print e
+            print(e)
 
         return self._is_loaded
 
     def save(self):
         config_file = open(self._config_file_path, 'w')
-        for k in self._config_hash.keys():
+        for k in list(self._config_hash.keys()):
             v = self._config_hash[k]
-            l = "%s = %s\n" % (k, v)
-            config_file.write(l)
+            ls = "%s = %s\n" % (k, v)
+            config_file.write(ls)
         config_file.close()
         self.emit('configuration-saved')
 
     def dump_keys(self):
-        print "\n\nDumping keys\n\n"
-        for k in self._config_hash.keys():
+        print("\n\nDumping keys\n\n")
+        for k in list(self._config_hash.keys()):
             v = self._config_hash[k]
-            l = "%s = %s\n" % (k, v)
-            print l
+            ls = "%s = %s\n" % (k, v)
+            print(ls)
 
 
 def test_save_load(test_config_file):
@@ -137,12 +136,12 @@ def test_save_load(test_config_file):
 
 
 def _configuration_saved_cb(config_file_obj):
-    print "_configuration_saved_cb called"
+    print("_configuration_saved_cb called")
     config_file_obj.dump_keys()
 
 
 def _configuration_loaded_cb(config_file_obj):
-    print "_configuration_loaded_cb called"
+    print("_configuration_loaded_cb called")
     config_file_obj.dump_keys()
 
 

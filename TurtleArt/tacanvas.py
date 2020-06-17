@@ -25,14 +25,12 @@ import os
 
 from math import pi
 
-from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
 from gi.repository import PangoCairo
-from gi.repository import GObject
-from tautils import get_path
-from taconstants import (Color, TMP_SVG_PATH, DEFAULT_PEN_COLOR,
-                         DEFAULT_BACKGROUND_COLOR, DEFAULT_FONT)
+from .tautils import get_path
+from .taconstants import (Color, TMP_SVG_PATH, DEFAULT_PEN_COLOR,
+                          DEFAULT_BACKGROUND_COLOR, DEFAULT_FONT)
 
 
 def wrap100(n):
@@ -292,7 +290,7 @@ class TurtleGraphics:
         ''' Draw a pixbuf '''
 
         def _draw_pixbuf(cc, pixbuf, a, b, x, y, w, h, heading):
-            # Build a gtk.gdk.CairoContext from a cairo.Context to access
+            # Build a Gdk.CairoContext from a cairo.Context to access
             # the set_source_pixbuf attribute.
             cc.save()
             # center the rotation on the center of the image
@@ -329,14 +327,14 @@ class TurtleGraphics:
             fd = Pango.FontDescription(self._font)
             fd.set_size(final_scale)
             pl.set_font_description(fd)
-            if isinstance(label, (str, unicode)):
+            if isinstance(label, str):
                 text = label.replace('\0', ' ')
             elif isinstance(label, (float, int)):
                 text = str(label)
             else:
                 text = label
 
-            pl.set_text(str(label), len(str(label)))
+            pl.set_text(text, -1)
             pl.set_width(int(width) * Pango.SCALE)
             cc.save()
             cc.translate(x, y)
@@ -427,7 +425,7 @@ class TurtleGraphics:
             cr.fill()
             cs.flush()  # ensure all writing is done
             pixels = cs.get_data()  # Read the pixel
-            return (ord(pixels[2]), ord(pixels[1]), ord(pixels[0]), 0)
+            return (pixels[2], pixels[1], pixels[0], 0)
         else:
             return(-1, -1, -1, -1)
 

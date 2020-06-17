@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (c) 2007-8, Playful Invention Company
 # Copyright (c) 2008-14, Walter Bender
 # Copyright (c) 2011 Collabora Ltd. <http://www.collabora.co.uk/>
@@ -26,17 +26,19 @@ import getopt
 import sys
 import os
 import os.path
-import cStringIO
+import io
 import errno
-import ConfigParser
+import configparser
 import tarfile
 import tempfile
 import subprocess
+
 import gi
-gi.require_version("Gtk", "3.0")
+gi.require_version('Gtk', '3.0')
+
 from gi.repository import Gtk
 from gi.repository import Gdk
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import GdkPixbuf
 from gi.repository import Gio
 
@@ -44,7 +46,7 @@ try:
     # Try to use XDG Base Directory standard for config files.
     import xdg.BaseDirectory
     CONFIG_HOME = os.path.join(xdg.BaseDirectory.xdg_config_home, 'turtleart')
-except ImportError as e:
+except ImportError:
     # Default to `.config` per the spec.
     CONFIG_HOME = os.path.expanduser(os.path.join('~', '.config', 'turtleart'))
 
@@ -67,7 +69,8 @@ from TurtleArt.taprimitive import PyExportError
 from TurtleArt.taplugin import (load_a_plugin, cancel_plugin_install,
                                 complete_plugin_install)
 
-from util.menubuilder import make_menu_item, make_sub_menu, make_checkmenu_item
+from TurtleArt.util.menubuilder import (make_menu_item,
+                                        make_sub_menu, make_checkmenu_item)
 
 
 class TurtleMain():
@@ -91,14 +94,14 @@ class TurtleMain():
         self._share_path = share_path
         self._abspath = os.path.abspath('.')
 
-        file_activity_info = ConfigParser.ConfigParser()
+        file_activity_info = configparser.ConfigParser()
         activity_info_path = os.path.join(share_path, 'activity/activity.info')
         file_activity_info.read(activity_info_path)
         bundle_id = file_activity_info.get('Activity', 'bundle_id')
         self.version = file_activity_info.get('Activity', 'activity_version')
         self.name = file_activity_info.get('Activity', 'name')
         self.summary = file_activity_info.get('Activity', 'summary')
-        self.website = file_activity_info.get('Activity', 'website')
+        self.website = file_activity_info.get('Activity', 'url')
         self.icon_name = file_activity_info.get('Activity', 'icon')
 
         path = os.path.join(share_path, 'locale')
@@ -139,22 +142,30 @@ class TurtleMain():
     def _get_local_settings(self, activity_root):
         """ return an activity-specific Gio.Settings
         """
-        # create schemas directory if missing
-        path = os.path.join(get_path(None, 'data'), 'schemas')
-        if not os.access(path, os.F_OK):
-            os.makedirs(path)
-
-        # create compiled schema file if missing
-        compiled = os.path.join(path, 'gschemas.compiled')
+        # create compiled schema file if missing from activity root
+        compiled = os.path.join(activity_root, 'gschemas.compiled')
         if not os.access(compiled, os.R_OK):
-            src = '%s.gschema.xml' % self._GIO_SETTINGS
-            lines = open(os.path.join(activity_root, src), 'r').readlines()
-            open(os.path.join(path, src), 'w').writelines(lines)
-            os.system('glib-compile-schemas %s' % path)
-            os.remove(os.path.join(path, src))
+            # create schemas directory if missing
+            path = os.path.join(get_path(None, 'data'), 'schemas')
+            if not os.access(path, os.F_OK):
+                os.makedirs(path)
+
+            # create compiled schema file if missing
+            compiled = os.path.join(path, 'gschemas.compiled')
+            if not os.access(compiled, os.R_OK):
+                src = '%s.gschema.xml' % self._GIO_SETTINGS
+                lines = open(os.path.join(activity_root, src), 'r').readlines()
+                open(os.path.join(path, src), 'w').writelines(lines)
+                os.system('glib-compile-schemas %s' % path)
+                os.remove(os.path.join(path, src))
+
+            schemas_path = path
+        else:
+            schemas_path = activity_root
 
         # create a local Gio.Settings based on the compiled schema
-        source = Gio.SettingsSchemaSource.new_from_directory(path, None, True)
+        source = Gio.SettingsSchemaSource.new_from_directory(
+            schemas_path, None, True)
         schema = source.lookup(self._GIO_SETTINGS, True)
         _settings = Gio.Settings.new_full(schema, None, None)
         return _settings
@@ -191,10 +202,10 @@ class TurtleMain():
 return %s(self)" % (p, P, P)
             plugin = {}
             try:
-                exec f in globals(), plugin
-                self._gnome_plugins.append(plugin.values()[0](self))
+                exec(f, globals(), plugin)
+                self._gnome_plugins.append(list(plugin.values())[0](self))
             except ImportError as e:
-                print 'failed to import %s: %s' % (P, str(e))
+                print('failed to import %s: %s' % (P, str(e)))
 
     def _run_gnome_plugins(self):
         ''' Tell the plugin about the TurtleWindow instance. '''
@@ -225,8 +236,9 @@ return %s(self)" % (p, P, P)
         if self._ta_file is None:
             self.tw.load_start()
         else:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.WATCH))
-            GObject.idle_add(self._project_loader, self._ta_file)
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.WATCH))
+            GLib.idle_add(self._project_loader, self._ta_file)
         self._set_gio_settings_overrides()
         Gtk.main()
 
@@ -235,7 +247,8 @@ return %s(self)" % (p, P, P)
         self.tw.lc.trace = 0
         if self._run_on_launch:
             self._do_run_cb()
-        self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+        self.win.get_window().set_cursor(
+            Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
 
     def _draw_and_quit(self):
         ''' Non-interactive mode: run the project, save it to a file
@@ -318,13 +331,13 @@ return %s(self)" % (p, P, P)
             opts, args = getopt.getopt(argv[1:], 'hor',
                                        ['help', 'output_png', 'run'])
         except getopt.GetoptError as err:
-            print str(err)
-            print self._HELP_MSG
+            print(str(err))
+            print(self._HELP_MSG)
             sys.exit(2)
         self._run_on_launch = False
         for o, a in opts:
             if o in ('-h', '--help'):
-                print self._HELP_MSG
+                print(self._HELP_MSG)
                 sys.exit()
             if o in ('-o', '--output_png'):
                 self._output_png = True
@@ -336,7 +349,7 @@ return %s(self)" % (p, P, P)
             self._ta_file = args[0]
 
         if len(args) > 1 or self._output_png and self._ta_file is None:
-            print self._HELP_MSG
+            print(self._HELP_MSG)
             sys.exit()
 
         if self._ta_file is not None:
@@ -352,8 +365,8 @@ return %s(self)" % (p, P, P)
         ''' Make sure Sugar paths are present. '''
         tapath = os.path.join(os.environ['HOME'], '.sugar', 'default',
                               'org.laptop.TurtleArtActivity')
-        map(self._makepath, (os.path.join(tapath, 'data/'),
-                             os.path.join(tapath, 'instance/')))
+        list(map(self._makepath, (os.path.join(tapath, 'data/'),
+                                  os.path.join(tapath, 'instance/'))))
 
     def _read_initial_pos(self):
         ''' Read saved configuration. '''
@@ -370,8 +383,8 @@ return %s(self)" % (p, P, P)
                 # We can't write to the configuration file, use
                 # a faux file that will persist for the length of
                 # the session.
-                print _('Configuration directory not writable: %s') % (e)
-            data_file = cStringIO.StringIO()
+                print(_('Configuration directory not writable: %s') % (e))
+            data_file = io.StringIO()
             data_file.write(str(50) + '\n')
             data_file.write(str(50) + '\n')
             data_file.write(str(800) + '\n')
@@ -404,7 +417,8 @@ return %s(self)" % (p, P, P)
             if hasattr(self.get_window(), 'get_cursor'):
                 self.get_window().set_cursor(self._old_cursor)
             else:
-                self.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+                self.get_window().set_cursor(
+                    Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
 
     def _setup_gtk(self):
         ''' Set up a scrolled window in which to run Turtle Blocks. '''
@@ -578,7 +592,7 @@ return %s(self)" % (p, P, P)
         if hasattr(self, '_settings'):
             self._settings.set_int(self._ORIENTATION, self.tw.orientation)
 
-        for plugin in self.tw.turtleart_plugins.values():
+        for plugin in list(self.tw.turtleart_plugins.values()):
             if hasattr(plugin, 'quit'):
                 plugin.quit()
 
@@ -613,7 +627,7 @@ Would you like to save before quitting?'))
 
     def _reload_plugin_alert(self, tmp_dir, tmp_path, plugin_path, plugin_name,
                              file_info):
-        print "Already installed"
+        print("Already installed")
         title = _('Plugin %s already installed') % plugin_name
         msg = _('Do you want to reinstall %s?') % plugin_name
         dlg = Gtk.MessageDialog(parent=None, type=Gtk.MessageType.INFO,
@@ -737,10 +751,10 @@ Would you like to save before quitting?'))
         save_type = '.lg'
         filename, self.tw.load_save_folder = get_save_name(
             save_type, None, 'logosession')
-        if isinstance(filename, unicode):
+        if isinstance(filename, str):
             filename = filename.encode('utf-8')
         if filename is not None:
-            f = file(filename, 'w')
+            f = open(filename, 'w')
             f.write(logocode)
             f.close()
 
@@ -753,7 +767,7 @@ Would you like to save before quitting?'))
             if pyee.block is not None:
                 pyee.block.highlight()
             self.tw.showlabel('status', str(pyee))
-            print pyee
+            print(pyee)
             return
         if not pythoncode:
             return
@@ -766,10 +780,10 @@ Would you like to save before quitting?'))
         save_type = '.py'
         filename, self.tw.load_save_folder = get_save_name(
             save_type, None, default_name)
-        if isinstance(filename, unicode):
+        if isinstance(filename, str):
             filename = filename.encode('utf-8')
         if filename is not None:
-            f = file(filename, 'w')
+            f = open(filename, 'w')
             f.write(pythoncode)
             f.close()
 
@@ -835,19 +849,19 @@ Would you like to save before quitting?'))
             plugins_list = self._settings.get_string(self._PLUGINS_LIST)
             plugins = plugins_list.split(',')
             if button.get_active():
-                if not name in plugins:
+                if name not in plugins:
                     plugins.append(name)
                     self._settings.set_string(
                         self._PLUGINS_LIST, ','.join(plugins))
                 label = _('Please restart %s in order to use the plugin.') \
-                        % self.name
+                    % self.name
             else:
                 if name in plugins:
                     plugins.remove(name)
                     self._settings.set_string(
                         self._PLUGINS_LIST, ','.join(plugins))
                 label = _('Please restart %s in order to unload the plugin.') \
-                        % self.name
+                    % self.name
         self.tw.showlabel('status', label)
 
     def _do_hover_help_on_cb(self):
@@ -866,9 +880,6 @@ Would you like to save before quitting?'))
     def _do_palette_cb(self, widget):
         ''' Callback to show/hide palette of blocks. '''
         self.tw.show_palette(self.current_palette)
-        self.current_palette += 1
-        if self.current_palette == len(self.tw.palettes):
-            self.current_palette = 0
 
     def _do_hide_palette_cb(self, widget):
         ''' Hide the palette of blocks. '''
@@ -918,10 +929,12 @@ Would you like to save before quitting?'))
         self.tw.copying_blocks = False
         self.tw.deleting_blocks = False
         if self.tw.saving_blocks:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
             self.tw.saving_blocks = False
         else:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.HAND1))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.HAND1))
             self.tw.saving_blocks = True
 
     def _do_delete_macro_cb(self, widget):
@@ -929,10 +942,12 @@ Would you like to save before quitting?'))
         self.tw.copying_blocks = False
         self.tw.saving_blocks = False
         if self.tw.deleting_blocks:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
             self.tw.deleting_blocks = False
         else:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.HAND1))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.HAND1))
             self.tw.deleting_blocks = True
 
     def _do_copy_cb(self, button):
@@ -940,10 +955,12 @@ Would you like to save before quitting?'))
         self.tw.saving_blocks = False
         self.tw.deleting_blocks = False
         if self.tw.copying_blocks:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
             self.tw.copying_blocks = False
         else:
-            self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.HAND1))
+            self.win.get_window().set_cursor(
+                Gdk.Cursor.new(Gdk.CursorType.HAND1))
             self.tw.copying_blocks = True
 
     def _do_paste_cb(self, button):
@@ -951,7 +968,8 @@ Would you like to save before quitting?'))
         self.tw.copying_blocks = False
         self.tw.saving_blocks = False
         self.tw.deleting_blocks = False
-        self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+        self.win.get_window().set_cursor(
+            Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
         clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
         text = clipboard.wait_for_text()
         if text is not None:
@@ -992,7 +1010,7 @@ Would you like to save before quitting?'))
 
     def color_changed(self, colors):
         ''' Reskin turtle with collaboration colors '''
-        turtle = self.tw.turtles.get_turtle(self.tw.default_turtle_name)
+        turtle = self.tw.turtles.get_turtle(self.tw._default_turtle_name)
         try:
             turtle.colors = colors.split(',')
         except BaseException:
@@ -1082,8 +1100,8 @@ Would you like to save before quitting?'))
         self._selected_sample = image_path
         self._sample_window.hide()
 
-        self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.WATCH))
-        GObject.idle_add(self._sample_loader)
+        self.win.get_window().set_cursor(Gdk.Cursor.new(Gdk.CursorType.WATCH))
+        GLib.idle_add(self._sample_loader)
 
     def _sample_loader(self):
         # Convert from thumbnail path to sample path
@@ -1094,7 +1112,8 @@ Would you like to save before quitting?'))
             if os.path.exists(file_path):
                 self.tw.load_files(file_path)
                 break
-        self.win.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.LEFT_PTR))
+        self.win.get_window().set_cursor(
+            Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR))
 
     def _fill_samples_list(self, store):
         '''

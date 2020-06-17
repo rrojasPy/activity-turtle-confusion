@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012, Gonzalo Odiard <godiard@gmail.com>
 # Copyright (C) 2012, Walter Bender <walter@sugarlabs.org>
@@ -73,7 +73,7 @@ class HelpButton(Gtk.ToolItem):
             self._palette.set_content(help_windows['main-toolbar'])
             help_windows['main-toolbar'].show_all()
 
-        self._palette.popup(immediate=True, state=1)
+        self._palette.popup(immediate=True)
 
 
 def add_section(help_box, section_text, icon=None):
@@ -103,7 +103,7 @@ def add_paragraph(help_box, text, icon=None):
     Gonzalo Odiard '''
     max_text_width = int(Gdk.Screen.width() / 3) - 20
     hbox = Gtk.HBox()
-    label = Gtk.Label(text)
+    label = Gtk.Label(label=text)
     label.set_justify(Gtk.Justification.LEFT)
     label.set_line_wrap(True)
     hbox.add(label)

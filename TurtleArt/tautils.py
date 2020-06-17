@@ -20,29 +20,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import gi
 import tempfile
 import dbus
 import cairo
 import pickle
 import subprocess
 import os
-import stat
-import string
 import mimetypes
 from gettext import gettext as _
 from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import GdkPixbuf
 from gi.repository import Gio
 import json
 json.dumps
 from json import load as jload
 from json import dump as jdump
-from StringIO import StringIO
+from io import StringIO
 
-from taconstants import (HIT_HIDE, HIT_SHOW, XO1, XO15, XO175, XO4, UNKNOWN,
-                         MAGICNUMBER, SUFFIX, ARG_MUST_BE_NUMBER)
+from .taconstants import (HIT_HIDE, HIT_SHOW, XO1, XO15, XO175, XO4, UNKNOWN,
+                          MAGICNUMBER, SUFFIX, ARG_MUST_BE_NUMBER)
 
 import logging
 _logger = logging.getLogger('turtleart-activity')
@@ -106,7 +103,7 @@ def chr_to_ord(x):
 
 def strtype(x):
     ''' Is x a string type? '''
-    return isinstance(x, basestring)
+    return isinstance(x, str)
 
 
 def increment_name(name):
@@ -118,7 +115,7 @@ def increment_name(name):
             i = int(parts[-1])
             i += 1
             parts[-1] = str(i)
-            newname = string.join(parts, '_')
+            newname = '_'.join(parts)
         except ValueError:
             newname = '%s_1' % (name)
     else:
@@ -172,9 +169,7 @@ def find_hat(data):
 
 def _to_str(text):
     ''' Convert whatever to a str type '''
-    if isinstance(text, unicode):
-        return text.encode('utf-8')
-    elif isinstance(text, str):
+    if isinstance(text, str):
         return text
     else:
         try:
@@ -338,7 +333,7 @@ def chooser_dialog(parent_window, filter, action):
         if cleanup_needed:
             chooser.destroy()
             del chooser
-    GObject.idle_add(action, dsobject)
+    GLib.idle_add(action, dsobject)
 
 
 def data_from_file(ta_file):
@@ -363,32 +358,29 @@ def data_from_string(text):
     ''' JSON load data from a string. '''
     if isinstance(text, str):
         return json_load(text.replace(']],\n', ']], '))
-    elif isinstance(text, unicode):
-        text = text.encode('utf-8')
-        return json_load(text.replace(']],\n', ']], '))
     else:
-        print 'type error (%s) in data_from_string' % (type(text))
+        print('type error (%s) in data_from_string' % (type(text)))
         return None
 
 
 def data_to_file(data, ta_file):
     ''' Write data to a file. '''
     try:
-        file_handle = file(ta_file, 'w')
+        file_handle = open(ta_file, 'w')
     except IOError as e:
         error_output('Could not write to %s: %s.' % (ta_file, e))
         tmp_file = os.path.join(os.path.expanduser('~'),
                                 os.path.basename(ta_file))
         try:
             debug_output('Trying to write to %s' % (tmp_file))
-            file_handle = file(tmp_file, 'w')
+            file_handle = open(tmp_file, 'w')
         except IOError as e:
             error_output('Could not write to %s: %s.' % (tmp_file, e))
             tmp_file = os.path.join(tempfile.gettempdir(),
                                     os.path.basename(ta_file))
             try:
                 debug_output('Trying to write to %s' % (tmp_file))
-                file_handle = file(tmp_file, 'w')
+                file_handle = open(tmp_file, 'w')
             except IOError as e:
                 error_output('Could not write to %s: %s.' % (tmp_file, e))
                 return
@@ -428,10 +420,7 @@ def save_picture(canvas, file_name):
     cr = cairo.Context(img_surface)
     cr.set_source_surface(x_surface)
     cr.paint()
-    if isinstance(file_name, unicode):
-        img_surface.write_to_png(str(file_name.encode('utf-8')))
-    else:
-        img_surface.write_to_png(str(file_name))
+    img_surface.write_to_png(str(file_name))
 
 
 def get_canvas_data(canvas):
@@ -754,7 +743,7 @@ def arithmetic_check(blk1, blk2, dock1, dock2):
 
 def xy(event):
     ''' Where is the mouse event? '''
-    return map(int, event.get_coords())
+    return list(map(int, event.get_coords()))
 
 
 # Utilities related to finding blocks in stacks.
@@ -763,7 +752,7 @@ def xy(event):
 def find_block_to_run(blk):
     ''' Find a stack to run (any stack without a 'def action'on the top). '''
     top = find_top_block(blk)
-    if blk == top and blk.name[0:3] is not 'def':
+    if blk == top and blk.name[0:3] != 'def':
         return True
     else:
         return False
@@ -915,7 +904,7 @@ def _get_dmi(node):
 def get_screen_dpi():
     ''' Return screen DPI '''
     try:
-        xft_dpi = Gtk.settings_get_default().get_property('gtk-xft-dpi')
+        xft_dpi = Gtk.Settings.get_default().get_property('gtk-xft-dpi')
         dpi = float(xft_dpi / 1024)
         return dpi
     except BaseException:
@@ -931,13 +920,13 @@ def check_output(command, warning):
             print(warning)
             return None
     else:
-        import commands
+        import subprocess
 
         cmd = ''
         for c in command:
             cmd += c
             cmd += ' '
-        (status, output) = commands.getstatusoutput(cmd)
+        (status, output) = subprocess.getstatusoutput(cmd)
         if status != 0:
             print(warning)
             return None
@@ -958,7 +947,7 @@ def power_manager_off(status):
     OHM_SERVICE_IFACE = 'org.freedesktop.ohm.Keystore'
     PATH = '/etc/powerd/flags/inhibit-suspend'
 
-    settings = Gio.Settings('org.sugarlabs.power');
+    settings = Gio.Settings('org.sugarlabs.power')
 
     ACTUAL_POWER = True
 

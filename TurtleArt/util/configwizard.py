@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Copyright (c) 2011 Collabora Ltd. <http://www.collabora.co.uk/>
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,7 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-from configfile import ConfigFile
+from .configfile import ConfigFile
 from gi.repository import Gtk
 
 
@@ -86,8 +86,8 @@ class ConfigWizard():
             self._do_save_config()
         except Exception as e:
             w = Gtk.Window()
-            l = Gtk.Label(e.message)
-            w.add(l)
+            ls = Gtk.Label(label=e.message)
+            w.add(ls)
             w.show_all()
         finally:
             self._config_popup.hide()
@@ -127,7 +127,7 @@ class ConfigWizard():
                 value = self._config_file_obj.get(param_name, True)
                 entry.set_active(value)
         self._config_entries[param_name] = entry
-        label = Gtk.Label(opts["item_label"] + ': ')
+        label = Gtk.Label(label=opts["item_label"] + ': ')
         label.set_alignment(1.0, 0.5)
         label.set_size_request(100, 25)
         hbox.add(label)

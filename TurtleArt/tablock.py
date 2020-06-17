@@ -24,19 +24,19 @@ import cairo
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 
-from taconstants import EXPANDABLE, EXPANDABLE_ARGS, OLD_NAMES, CONSTANTS, \
+from .taconstants import EXPANDABLE, EXPANDABLE_ARGS, OLD_NAMES, CONSTANTS, \
     STANDARD_STROKE_WIDTH, BLOCK_SCALE, BOX_COLORS, \
     GRADIENT_COLOR, EXPANDABLE_FLOW, Color, \
     MEDIA_BLOCK2TYPE, BLOCKS_WITH_SKIN
 
-from tapalette import palette_blocks, block_colors, expandable_blocks, \
+from .tapalette import palette_blocks, block_colors, expandable_blocks, \
     content_blocks, block_names, block_primitives, \
     block_styles, special_block_colors
 
-from tasprite_factory import SVG, svg_str_to_pixbuf
-import sprites
+from .tasprite_factory import SVG, svg_str_to_pixbuf
+from . import sprites
 
-from tautils import debug_output, error_output
+from .tautils import debug_output, error_output
 
 
 media_blocks_dictionary = {}  # new media blocks get added here
@@ -61,8 +61,9 @@ class Media(object):
         if media_type == 'image':
             media_type = 'media'
         if media_type not in Media.ALL_TYPES:
-            raise ValueError("Media.type must be one of " +
-                             repr(Media.ALL_TYPES))
+            raise ValueError(
+                "Media.type must be one of " + repr(
+                    Media.ALL_TYPES))
         self.type = media_type
         self.value = value
 
@@ -108,7 +109,7 @@ class Blocks:
     def print_list(self, block_type=None):
         for i, block in enumerate(self.list):
             if block_type is None or block_type == block.type:
-                print "%d: %s" % (i, block.name)
+                print("%d: %s" % (i, block.name))
 
     def set_scale(self, scale):
         for b in self.list:
@@ -353,8 +354,8 @@ class Block:
                 return float(self.values[0])
             except ValueError:
                 return float(ord(self.values[0][0]))
-        elif (self.name == 'string' or
-                self.name == 'title'):  # deprecated block
+        elif self.name == 'string' or \
+                self.name == 'title':  # deprecated block
             if add_type_prefix:
                 result = '#s'
             else:
@@ -375,12 +376,12 @@ class Block:
 
     def highlight(self):
         """ We may want to highlight a block... """
-        if self.spr is not None and self.status is not 'collapsed':
+        if self.spr is not None and self.status != 'collapsed':
             self.spr.set_shape(self.shapes[1])
 
     def unhighlight(self):
         """ Or unhighlight it. """
-        if self.spr is not None and self.status is not 'collapsed':
+        if self.spr is not None and self.status != 'collapsed':
             self.spr.set_shape(self.shapes[0])
 
     def resize(self):
@@ -670,8 +671,6 @@ class Block:
     def _set_label_attributes(self):
         if self.spr is None:
             return
-        if isinstance(self.name, unicode):
-            self.name = self.name.encode('utf-8')
         if self.name in content_blocks:
             n = len(self.values)
             if n == 0:
@@ -691,7 +690,7 @@ class Block:
                 self.spr.set_label_attributes(size, True, 'center', 'bottom',
                                               i=i)
             elif self.name in block_styles['clamp-style-hat']:
-                self.spr.set_margins(t=10 * self.scale)
+                self.spr.set_margins(top=10 * self.scale)
                 self.spr.set_label_attributes(size, True, 'center', 'top',
                                               i=i)
             elif self.name in block_styles['clamp-style-hat-1arg']:
@@ -740,7 +739,8 @@ class Block:
             self.spr.set_label_attributes(int(self.font_size[1] + 0.5),
                                           True, 'right', y_pos=y, i=1)
         elif self.name in block_styles['clamp-style-else']:
-            self.spr.set_margins(l=10 * self.scale, r=10 * self.scale)
+            self.spr.set_margins(left=10 * self.scale,
+                                 right=10 * self.scale)
             y = self.docks[1][3] - int(int(self.font_size[0] * 1.3))
             self.spr.set_label_attributes(int(self.font_size[0] + 0.5),
                                           True, 'right', y_pos=y, i=0)
@@ -762,9 +762,7 @@ class Block:
         self._right = 0
         self._bottom = 0
         self.svg.set_stroke_width(STANDARD_STROKE_WIDTH)
-        if isinstance(self.name, unicode):
-            self.name = self.name.encode('utf-8')
-        for k in block_styles.keys():
+        for k in list(block_styles.keys()):
             if self.name in block_styles[k]:
                 if isinstance(self._block_methods[k], list):
                     self._block_methods[k][0](svg, self._block_methods[k][1],

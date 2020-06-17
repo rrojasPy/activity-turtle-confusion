@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (c) 2009-12 Walter Bender
 
@@ -23,13 +23,13 @@
 import os
 
 from gi.repository import GdkPixbuf
+from gi.repository.RB import file
 
-from taconstants import HIT_RED, HIT_GREEN, HIDE_WHITE, SHOW_WHITE, \
+from .taconstants import HIT_RED, HIT_GREEN, HIDE_WHITE, SHOW_WHITE, \
     PALETTE_COLOR, TOOLBAR_COLOR
 
 
 class SVG:
-
     """ Interface to the graphical representation of blocks, turtles,
     palettes, etc. on screen
 
@@ -134,8 +134,8 @@ class SVG:
             if i == 0 and self._porch is True:
                 svg += self._do_porch(False)
             elif len(self._innie) - 1 > i:
-                svg += self._rline_to(0, 2 * self._innie_y2 +
-                                      self._innie_spacer)
+                svg += self._rline_to(
+                    0, 2 * self._innie_y2 + self._innie_spacer)
         svg += self._corner(-1, 1)
         svg += self.line_to(xx, self._y)
         svg += self._rline_to(-self._expand_x, 0)
@@ -146,8 +146,8 @@ class SVG:
         svg += self._corner(-1, -1)
         svg += self._rline_to(0, -self._expand_y)
         if True in self._innie:
-            svg += self.line_to(x, self._radius + self._innie_y2 +
-                                self._stroke_width / 2.0)
+            svg += self.line_to(
+                x, self._radius + self._innie_y2 + self._stroke_width / 2.0)
             svg += self._do_outie()
         self.calc_w_h()
         svg += self._close_path()
@@ -227,8 +227,8 @@ class SVG:
         svg += self._corner(-1, -1)
         svg += self._rline_to(0, -self._expand_y)
         if True in self._innie:
-            svg += self.line_to(x, self._radius + self._innie_y2 +
-                                self._stroke_width)
+            svg += self.line_to(
+                x, self._radius + self._innie_y2 + self._stroke_width)
         svg += self._close_path()
         self.calc_w_h()
         svg += self.style()
@@ -239,8 +239,9 @@ class SVG:
         svg += self.footer()
         if self._bool is True:  # move secondary labels to arm
             self.margins[2] = self._radius * 1.5 * self._scale
-            self.margins[3] = (self._max_y - save_y - self._radius +
-                               self._stroke_width) * self._scale
+            self.margins[3] = (
+                self._max_y - save_y - self._radius + self._stroke_width) * \
+                self._scale
         return self.header() + svg
 
     def portfolio(self):
@@ -260,25 +261,26 @@ class SVG:
         svg += self._corner(1, 1)
         svg += self._rline_to(0, self._expand_y)
         for i in range(len(self._innie)):
-            if self._innie[i] is True and i > 0 and self._draw_innies:
+            if self._innie[i] is True and \
+                    i > 0 and self._draw_innies:
                 svg += self._do_innie()
-                svg += self._rline_to(0, 2 * self._innie_y2 +
-                                      self._innie_spacer)
+                svg += self._rline_to(
+                    0, 2 * self._innie_y2 + self._innie_spacer)
             else:
-                svg += self._rline_to(0, 2 * self._innie_y2 +
-                                      self._innie_spacer)
+                svg += self._rline_to(
+                    0, 2 * self._innie_y2 + self._innie_spacer)
         svg += self._corner(-1, 1)
         svg += self.line_to(xx, self._y)
         svg += self._do_tab()
         svg += self._corner(-1, -1)
         for i in range(len(self._innie)):
             if self._innie[len(self._innie) - i - 1] is True:
-                svg += self._rline_to(0, -2 * self._innie_y2 -
-                                      self._innie_spacer)
+                svg += self._rline_to(
+                    0, -2 * self._innie_y2 - self._innie_spacer)
                 svg += self._do_reverse_innie()
             else:
-                svg += self._rline_to(0, -2 * self._innie_y2 -
-                                      self._innie_spacer)
+                svg += self._rline_to(
+                    0, -2 * self._innie_y2 - self._innie_spacer)
         svg += self._close_path()
         self.calc_w_h()
         svg += self.style()
@@ -296,11 +298,11 @@ class SVG:
         self.margins[3] = 0
         svg = self.new_path(x, self._stroke_width / 2.0)
         svg += self._rline_to(self._expand_x, 0)
-        svg += self._rline_to(0, 2 * self._radius + self._innie_y2 +
-                              self._expand_y)
+        svg += self._rline_to(
+            0, 2 * self._radius + self._innie_y2 + self._expand_y)
         svg += self._rline_to(-self._expand_x, 0)
-        svg += self.line_to(x, self._radius + self._innie_y2 +
-                            self._stroke_width / 2.0)
+        svg += self.line_to(
+            x, self._radius + self._innie_y2 + self._stroke_width / 2.0)
         svg += self._do_outie()
         svg += self._close_path()
         self.calc_w_h()
@@ -312,12 +314,8 @@ class SVG:
         ''' Booleans are in a class of their own '''
         self.reset_min_max()
         svg = self._start_boolean(self._stroke_width / 2.0,
-                                  self._radius * 5.5 + self._stroke_width /
-                                  2.0 +
-                                  self._innie_y2 + self._innie_spacer +
-                                  self._expand_y)
-        svg += self._rline_to(0, -self._radius * 3.5 - self._innie_y2 -
-                              self._innie_spacer - self._stroke_width)
+                                  self._radius * 5.5 + self._stroke_width / 2.0 + self._innie_y2 + self._innie_spacer + self._expand_y)
+        svg += self._rline_to(0, -self._radius * 3.5 - self._innie_y2 - self._innie_spacer - self._stroke_width)
 
         self._hide_x = self._x + self._radius + self._stroke_width
         self._hide_y = self._y
@@ -328,8 +326,8 @@ class SVG:
         xx = self._x
         svg += self._rline_to(0, self._radius / 2.0)
         svg += self._do_boolean()
-        svg += self._rline_to(0, self._radius * 1.5 + self._innie_y2 +
-                              self._innie_spacer)
+        svg += self._rline_to(
+            0, self._radius * 1.5 + self._innie_y2 + self._innie_spacer)
 
         svg += self._rline_to(0, self._expand_y)
 
@@ -337,13 +335,14 @@ class SVG:
         svg += self._rline_to(0, self._radius / 2.0)
 
         self._show_y = self._y
-        self._show_y -= (self._innie_y1 + self._innie_y2 + self._stroke_width)
+        self._show_y -= (
+            self._innie_y1 + self._innie_y2 + self._stroke_width)
 
         svg += self.line_to(xx, self._y)
         svg += self._rline_to(-self._expand_x, 0)
         svg += self._end_boolean()
-        self.margins[0] = int((self._radius + self._stroke_width + 0.5) *
-                              self._scale)
+        self.margins[0] = int((
+            self._radius + self._stroke_width + 0.5) * self._scale)
         self.margins[1] = int(self._stroke_width * self._scale)
         self.margins[2] = int(self._stroke_width * self._scale)
         self.margins[3] = int(self._stroke_width * self._scale)
@@ -395,10 +394,10 @@ class SVG:
             svg += self._rline_to(-self._radius / 2.0 - self._expand_x, 0)
         svg += self._end_boolean(notnot)
         if notnot:
-            self.margins[0] = int((self._radius + self._stroke_width + 0.5) *
-                                  self._scale)
-            self.margins[2] = int((self._radius + self._stroke_width + 0.5) *
-                                  self._scale)
+            self.margins[0] = int(
+                (self._radius + self._stroke_width + 0.5) * self._scale)
+            self.margins[2] = int(
+                (self._radius + self._stroke_width + 0.5) * self._scale)
         else:
             self.margins[0] = int((self._stroke_width + 0.5) * self._scale)
             self.margins[2] = int((self._stroke_width + 0.5) * self._scale)
@@ -441,8 +440,8 @@ class SVG:
             (self._innie_y1 + self._innie_y2 + self._stroke_width * 2)
 
         svg += self._end_boolean()
-        self.margins[0] = int((self._radius + self._stroke_width) *
-                              self._scale)
+        self.margins[0] = int(
+            (self._radius + self._stroke_width) * self._scale)
         self.margins[1] = int(self._stroke_width * self._scale)
         self.margins[2] = int(self._stroke_width * self._scale)
         return self.header() + svg
@@ -504,7 +503,7 @@ fill="%s" stroke="%s" />\n' % (self._fill, self._stroke)
 C 33.66,12.62 34.83,11.27 34.25,10 32.95,7.24 31.19,2.31 27.5,2.31 \
 c -3.69,0 -5.08,4.93 -6.75,7.69 -0.74,1.22 0.44,2.66 1.21,3.74 1.72,-0.75 \
 3.60,-1.18 5.54,-1.18 z" style="fill:%s;stroke:%s;stroke-width:3.5" />' % \
-            (self._fill, self._stroke)
+               (self._fill, self._stroke)
         # Shell
         svg += '   <path d="M 43.1 30.4 C 43.1 35.2 41.5 39.7 38.5 43.0 \
 C 35.6 46.4 31.6 48.3 27.5 48.3 C 23.4 48.3 19.4 46.4 16.5 43.0 \
@@ -839,7 +838,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
     version="1.1"\n\
     width="%.1f"\n\
     height="%.1f">\n' % (self._width, self._height) + \
-            self._defs() + self._transform(center)
+               self._defs() + self._transform(center)
 
     def _defs(self):
         if self._gradient is True:
@@ -872,15 +871,16 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
     def _transform(self, center):
         if self._orientation != 0:
             orientation = "<g\ntransform = \"rotate(%.1f %.1f %.1f)\">\n" % \
-                (self._orientation, self._width / 2.0, self._height / 2.0)
+                          (self._orientation,
+                           self._width / 2.0, self._height / 2.0)
         else:
             orientation = ""
         if center:
             return "<g\ntransform=\"translate(%.1f, %.1f)\">\n" % \
-                (-self._min_x, -self._min_y)
+                   (-self._min_x, -self._min_y)
         else:
             return "<g\ntransform=\"scale(%.1f, %.1f)\">\n%s" % \
-                (self._scale, self._scale, orientation)
+                   (self._scale, self._scale, orientation)
 
     def footer(self):
         if self._orientation != 0:
@@ -894,11 +894,11 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
         else:
             fill = self._fill
         return "%s%s;%s%s;%s%.1f;%s%s" % (
-               "       style=\"fill:", fill,
-               "fill-opacity:1;stroke:", self._stroke,
-               "stroke-width:", self._stroke_width,
-               "stroke-linecap:round;",
-               "stroke-opacity:1;\" />\n")
+            "       style=\"fill:", fill,
+            "fill-opacity:1;stroke:", self._stroke,
+            "stroke-width:", self._stroke_width,
+            "stroke-linecap:round;",
+            "stroke-opacity:1;\" />\n")
 
     def text(self, x, y, size, width, string):
         self._x = x
@@ -908,10 +908,10 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
         self._y = y - size
         self._check_min_max()
         return "        %s%.1f%s%s%s%.1f%s%.1f%s%.1f%s%s%s%s%s" % (
-               "<text style=\"font-size:", size, "px;fill:", self._stroke,
-               ";font-family:Sans\">\n           <tspan x=\"", x, "\" y=\"", y,
-               "\" style=\"font-size:", size, "px;fill:", self._stroke, "\">",
-               string, "</tspan>\n        </text>\n")
+            "<text style=\"font-size:", size, "px;fill:", self._stroke,
+            ";font-family:Sans\">\n           <tspan x=\"", x, "\" y=\"", y,
+            "\" style=\"font-size:", size, "px;fill:", self._stroke, "\">",
+            string, "</tspan>\n        </text>\n")
 
     def image(self, x, y, w, h, path, image_data=None):
         self._x = x
@@ -922,20 +922,20 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
         self._check_min_max()
         if image_data is None:
             return "        %s%.1f%s%.1f%s%.1f%s%.1f%s%s%s" % (
-                   "<image x=\"", x, "\" y=\"", y,
-                   "\" width=\"", w, "\" height=\"", h,
-                   "\" xlink:href=\"file://", path, "\"/>\n")
+                "<image x=\"", x, "\" y=\"", y,
+                "\" width=\"", w, "\" height=\"", h,
+                "\" xlink:href=\"file://", path, "\"/>\n")
         else:
             return "        %s%.1f%s%.1f%s%.1f%s%.1f%s%s%s" % (
-                   "<image x=\"", x, "\" y=\"", y,
-                   "\" width=\"", w, "\" height=\"", h,
-                   "\" xlink:href=\"data:image/png;base64,", image_data,
-                   "\"/>\n")
+                "<image x=\"", x, "\" y=\"", y,
+                "\" width=\"", w, "\" height=\"", h,
+                "\" xlink:href=\"data:image/png;base64,", image_data,
+                "\"/>\n")
 
     def _circle(self, r, cx, cy):
         return "%s%s%s%s%s%f%s%f%s%f%s" % \
-            ("<circle style=\"fill:", self._fill, ";stroke:", self._stroke,
-             ";\" r=\"", r, "\" cx=\"", cx, "\" cy=\"", cy, "\" />\n")
+               ("<circle style=\"fill:", self._fill, ";stroke:", self._stroke,
+                ";\" r=\"", r, "\" cx=\"", cx, "\" cy=\"", cy, "\" />\n")
 
     def _rect(self, w, h, x, y):
         return "%s%s%s%s%s%f%s%f%s%f%s%f%s" % ("<rect style=\"fill:",
@@ -993,7 +993,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
         else:
             return self.line_to(self._x + dx, self._y + dy)
 
-    def arc_to(self, x, y, r, a=90, l=0, s=1):
+    def arc_to(self, x, y, r, a=90, laf=0, s=1):
         self._check_min_max()
         if r == 0:
             return self.line_to(x, y)
@@ -1002,17 +1002,17 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
             self._y = y
             self._check_min_max()
             return "A %.1f %.1f %.1f %d %d %.1f %.1f " % (
-                r, r, a, l, s, x, y)
+                r, r, a, laf, s, x, y)
 
-    def _rarc_to(self, sign_x, sign_y, a=90, l=0, s=1):
+    def _rarc_to(self, sign_x, sign_y, a=90, laf=0, s=1):
         if self._radius == 0:
             return ""
         else:
             x = self._x + sign_x * self._radius
             y = self._y + sign_y * self._radius
-            return self.arc_to(x, y, self._radius, a, l, s)
+            return self.arc_to(x, y, self._radius, a, laf, s)
 
-    def _inverse_corner(self, sign_x, sign_y, a=90, l=0, s=1, start=True,
+    def _inverse_corner(self, sign_x, sign_y, a=90, laf=0, s=1, start=True,
                         end=True):
         r2 = self._stroke_width + self._radius / 2.0
         if start:
@@ -1022,7 +1022,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
                 svg_str = self._rline_to(0, sign_y * (r2 - self._stroke_width))
         x = self._x + sign_x * r2
         y = self._y + sign_y * r2
-        svg_str += self.arc_to(x, y, r2, a, l, s)
+        svg_str += self.arc_to(x, y, r2, a, laf, s)
         if end:
             if sign_x * sign_y == -1:
                 svg_str += self._rline_to(0,
@@ -1032,7 +1032,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
                                           0)
         return svg_str
 
-    def _corner(self, sign_x, sign_y, a=90, l=0, s=1, start=True, end=True,
+    def _corner(self, sign_x, sign_y, a=90, laf=0, s=1, start=True, end=True,
                 skip=False):
         svg_str = ""
         if sign_x == 1 and sign_y == -1:  # Upper-left corner
@@ -1057,7 +1057,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
                     svg_str += self._rline_to(0, sign_y * r2)
             x = self._x + sign_x * r2
             y = self._y + sign_y * r2
-            svg_str += self.arc_to(x, y, r2, a, l, s)
+            svg_str += self.arc_to(x, y, r2, a, laf, s)
             if end:
                 if sign_x * sign_y == 1:
                     svg_str += self._rline_to(0, sign_y * r2)
@@ -1167,11 +1167,12 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
         self.docks.append((int((self._x + self._stroke_width) * self._scale),
                            int((self._y + self._innie_y2) * self._scale)))
         if self.margins[2] == 0:
-            self.margins[1] = int((self._y - self._innie_y1) * self._scale)
-            self.margins[2] = int((self._x - self._innie_x1 -
-                                   self._innie_x2 - self._stroke_width * 2) *
-                                  self._scale)
-        self.margins[3] =\
+            self.margins[1] = int(
+                (self._y - self._innie_y1) * self._scale)
+            self.margins[2] = int(
+                (self._x - self._innie_x1 - self._innie_x2 - self._stroke_width * 2
+                 ) * self._scale)
+        self.margins[3] = \
             int((self._y + self._innie_y2 + self._innie_y1) * self._scale)
         return "%s%s%s%s%s%s%s" % (
             self._rline_to(-self._innie_x1, 0),
@@ -1184,7 +1185,7 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
 
     def _do_reverse_innie(self):
         self.docks.append((int((self._x + self._stroke_width) * self._scale),
-                           int((self._y) * self._scale)))
+                           int(self._y * self._scale)))
         return "%s%s%s%s%s%s%s" % (
             self._rline_to(-self._innie_x1, 0),
             self._rline_to(0, self._innie_y1),
@@ -1204,7 +1205,8 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
             self._rline_to(-self._innie_x1 - 2 * self._stroke_width, 0),
             self._rline_to(0, self._innie_y1),
             self._rline_to(-self._innie_x2 + 2 * self._stroke_width, 0),
-            self._rline_to(0, -self._innie_y2 - 2 * self._innie_y1 +
+            self._rline_to(0,
+                           -self._innie_y2 - 2 * self._innie_y1 +
                            2 * self._stroke_width),
             self._rline_to(self._innie_x2 - 2 * self._stroke_width, 0),
             self._rline_to(0, self._innie_y1),
@@ -1219,8 +1221,8 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
                 self._corner(1, 1))
         else:
             return "%s%s%s" % (
-                self._rline_to(0, self._porch_y - self._innie_y1 +
-                               self._stroke_width),
+                self._rline_to(
+                    0, self._porch_y - self._innie_y1 + self._stroke_width),
                 self._rline_to(self._porch_x - self._radius, 0),
                 self._corner(1, 1))
 
@@ -1280,11 +1282,12 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
             self._height = (self._max_y - self._min_y) * self._scale
         if self.margins[3] == 0:
             if self._tab:
-                self.margins[3] = int((self._slot_y + self._stroke_width +
-                                       0.5) * self._scale)
+                self.margins[3] = int(
+                    (self._slot_y + self._stroke_width + 0.5) * self._scale)
             else:
-                self.margins[3] = int((self._slot_y * 2 +
-                                       self._stroke_width + 0.5) * self._scale)
+                self.margins[3] = int(
+                    (self._slot_y * 2 + self._stroke_width + 0.5
+                     ) * self._scale)
         else:
             self.margins[3] = int(self._height - self.margins[3])
 
@@ -1303,7 +1306,8 @@ stroke-width="3.5" fill="%s" stroke="none" />\n' % (self._stroke)
             self.margins[1] += self._slot_y
         self.margins[0] *= self._scale
         self.margins[1] *= self._scale
-        return(x, y)
+        return (x, y)
+
 
 #
 # Command-line tools for testing
@@ -1617,7 +1621,7 @@ if __name__ == "__main__":
 def svg_str_to_pixbuf(svg_string):
     """ Load pixbuf from SVG string """
     pl = GdkPixbuf.PixbufLoader()
-    pl.write(svg_string)
+    pl.write(svg_string.encode())
     pl.close()
     pixbuf = pl.get_pixbuf()
     return pixbuf
@@ -1631,7 +1635,7 @@ def svg_str_to_pixmap(svg_string):
 
 def svg_from_file(pathname):
     """ Read SVG string from a file """
-    f = file(pathname, 'r')
+    f = open(pathname, 'r')
     svg = f.read()
     f.close()
-    return(svg)
+    return (svg)
