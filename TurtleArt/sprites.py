@@ -24,7 +24,7 @@
 '''
 
 sprites.py is a simple sprites library for managing graphics objects,
-'sprites', on a gtk.DrawingArea. It manages multiple sprites with
+'sprites', on a Gtk.DrawingArea. It manages multiple sprites with
 methods such as move, hide, set_layer, etc.
 
 There are two classes:
@@ -68,7 +68,7 @@ Example usage:
 
 # method for converting SVG to a gtk pixbuf
 def svg_str_to_pixbuf(svg_string):
-    pl = gtk.gdk.PixbufLoader('svg')
+    pl = GdkPixbuf.PixbufLoader('svg')
     pl.write(svg_string)
     pl.close()
     pixbuf = pl.get_pixbuf()
@@ -76,10 +76,7 @@ def svg_str_to_pixbuf(svg_string):
 
 '''
 import cairo
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk
+
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Pango
@@ -154,7 +151,7 @@ class Sprites:
         else:
             self.cr = cr
         if cr is None:
-            print 'sprites.redraw_sprites: no Cairo context'
+            print('sprites.redraw_sprites: no Cairo context')
             return
         for spr in self.list:
             if area is None:
@@ -279,16 +276,16 @@ class Sprite:
     def set_label(self, new_label, i=0):
         ''' Set the label drawn on the sprite '''
         self._extend_labels_array(i)
-        if isinstance(new_label, (str, unicode)):
+        if isinstance(new_label, str):
             # pango doesn't like nulls
             self.labels[i] = new_label.replace('\0', ' ')
         else:
             self.labels[i] = str(new_label)
         self.inval()
 
-    def set_margins(self, l=0, t=0, r=0, b=0):
+    def set_margins(self, left=0, top=0, right=0, bottom=0):
         ''' Set the margins for drawing the label '''
-        self._margins = [l, t, r, b]
+        self._margins = [left, top, right, bottom]
 
     def _extend_labels_array(self, i):
         ''' Append to the labels attribute list '''
@@ -356,7 +353,7 @@ class Sprite:
         if self._sprites.defer_draw:
             return
         if cr is None:
-            print 'sprite.draw: no Cairo context.'
+            print('sprite.draw: no Cairo context.')
             return
         for i, surface in enumerate(self.cached_surfaces):
             cr.set_source_surface(surface,
@@ -399,7 +396,7 @@ class Sprite:
         my_height = self.rect.height - self._margins[1] - self._margins[3]
         for i in range(len(self.labels)):
             pl = PangoCairo.create_layout(cr)
-            pl.set_text(str(self.labels[i]), len(str(self.labels[i])))
+            pl.set_text(self.labels[i], -1)
             self._fd.set_size(int(self._scale[i] * Pango.SCALE))
             pl.set_font_description(self._fd)
             w = pl.get_size()[0] / Pango.SCALE
@@ -447,7 +444,7 @@ class Sprite:
             max = 0
             for i in range(len(self.labels)):
                 pl = PangoCairo.create_layout(cr)
-                pl.set_text(self.labels[i], len(self.labels[i]))
+                pl.set_text(self.labels[i], -1)
                 self._fd.set_size(int(self._scale[i] * Pango.SCALE))
                 pl.set_font_description(self._fd)
                 w = pl.get_size()[0] / Pango.SCALE
@@ -485,4 +482,4 @@ class Sprite:
         cr.fill()
         cs.flush()  # Ensure all the writing is done.
         pixels = cs.get_data()  # Read the pixel.
-        return (ord(pixels[2]), ord(pixels[1]), ord(pixels[0]), 0)
+        return (pixels[2], pixels[1], pixels[0], 0)

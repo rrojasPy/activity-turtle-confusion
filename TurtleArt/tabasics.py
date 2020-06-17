@@ -100,17 +100,17 @@ the others. (This is the default icon size for Sugar toolbars.)
 from time import time
 from gettext import gettext as _
 
-from tapalette import (make_palette, define_logo_function)
-from talogo import primitive_dictionary
-from taconstants import (
+from .tapalette import (make_palette, define_logo_function)
+from .talogo import primitive_dictionary
+from .taconstants import (
     Color,
     CONSTANTS,
     DEFAULT_BACKGROUND_COLOR_SHADE_GRAY)
-from taprimitive import (ArgSlot, ConstantArg, or_, Primitive)
-from tatype import (TYPE_BOOL, TYPE_BOX, TYPE_CHAR, TYPE_COLOR, TYPE_FLOAT,
-                    TYPE_INT, TYPE_NUMBER, TYPE_NUMERIC_STRING, TYPE_OBJECT,
-                    TYPE_STRING, TYPE_VECTOR)
-from taturtle import Turtle
+from .taprimitive import (ArgSlot, ConstantArg, or_, Primitive)
+from .tatype import (TYPE_BOOL, TYPE_BOX, TYPE_CHAR, TYPE_COLOR, TYPE_FLOAT,
+                     TYPE_INT, TYPE_NUMBER, TYPE_NUMERIC_STRING, TYPE_OBJECT,
+                     TYPE_STRING, TYPE_VECTOR)
+from .taturtle import Turtle
 
 
 def _millisecond():
@@ -558,9 +558,9 @@ pensize\nend\n')
         color_names = ('red', 'orange', 'yellow', 'green', 'cyan', 'blue',
                        'purple', 'white', 'black')
         # Need to make sure color names are included in the PO files
-        color_names_i18n = (_('red'), _('orange'), _('yellow'), _('green'),
-                            _('cyan'), _('blue'), _('purple'), _('white'),
-                            _('black'))
+        color_names_i18n = (_('red'), _('orange'), _('yellow'),  # noqa: F841
+                            _('green'), _('cyan'), _('blue'),
+                            _('purple'), _('white'), _('black'))
         for name in color_names:
             self._make_constant(palette, name, _(name), name)
 
@@ -1247,7 +1247,8 @@ variable'))
                           prim_name='returnstack',
                           logo_command='action',
                           default=_('action'),
-                          help_string=_('invokes named action stack and returns value'))
+                          help_string=_(
+                              'invokes named action stack and returns value'))
         self.tw.lc.def_prim('returnstack', 1,
                             primitive_dictionary['returnstack'], True)
 
@@ -1292,33 +1293,35 @@ variable'))
         if self.tw.lc.update_values:
             self.tw.lc.update_label_value(
                 'xcor',
-                self.tw.turtles.get_active_turtle().get_xy()[0] /
-                self.tw.coord_scale)
+                self.tw.turtles.get_active_turtle(
+                ).get_xy()[0] / self.tw.coord_scale)
             self.tw.lc.update_label_value(
                 'ycor',
-                self.tw.turtles.get_active_turtle().get_xy()[1] /
-                self.tw.coord_scale)
+                self.tw.turtles.get_active_turtle().get_xy(
+                )[1] / self.tw.coord_scale)
             self.tw.lc.update_label_value(
                 'heading',
-                self.tw.turtles.get_active_turtle().get_heading())
+                self.tw.turtles.get_active_turtle(
+                ).get_heading())
 
     def after_move(self, *ignored_args, **ignored_kwargs):
         ''' Update labels after moving the turtle '''
         if self.tw.lc.update_values:
             self.tw.lc.update_label_value(
                 'xcor',
-                self.tw.turtles.get_active_turtle().get_xy()[0] /
-                self.tw.coord_scale)
+                self.tw.turtles.get_active_turtle().get_xy(
+                )[0] / self.tw.coord_scale)
             self.tw.lc.update_label_value(
                 'ycor',
-                self.tw.turtles.get_active_turtle().get_xy()[1] /
-                self.tw.coord_scale)
+                self.tw.turtles.get_active_turtle().get_xy(
+                )[1] / self.tw.coord_scale)
 
     def after_right(self, *ignored_args):
         if self.tw.lc.update_values:
             self.tw.lc.update_label_value(
                 'heading',
-                self.tw.turtles.get_active_turtle().get_heading())
+                self.tw.turtles.get_active_turtle(
+                ).get_heading())
 
     def after_set(self, name, value=None):
         ''' Update the associated value blocks '''

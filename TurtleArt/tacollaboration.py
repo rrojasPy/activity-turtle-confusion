@@ -20,13 +20,8 @@
 # THE SOFTWARE.
 
 import os
-import base64
-import telepathy
 
 from gettext import gettext as _
-
-from dbus.service import signal
-from dbus.gobject_service import ExportedGObject
 
 from gi.repository import GdkPixbuf
 
@@ -37,10 +32,7 @@ from TurtleArt.taconstants import DEFAULT_TURTLE_COLORS
 from sugar3 import profile
 from sugar3.presence import presenceservice
 
-try:
-    from sugar3.presence.wrapper import CollabWrapper
-except ImportError:
-    from textchannelwrapper import CollabWrapper
+from .textchannelwrapper import CollabWrapper
 
 
 SERVICE = 'org.laptop.TurtleArtActivity'
@@ -68,8 +60,13 @@ class Collaboration():
         self.owner = owner
         self._tw.buddies.append(self.owner)
         self._share = ''
-        self._activity.connect('shared', self._shared_cb)
-        self._activity.connect('joined', self._joined_cb)
+        self._activity.connect('shared', self._activity_shared_cb)
+        self._activity.connect('joined', self._activity_joined_cb)
+
+        self.collab = CollabWrapper(self._activity)
+        self.collab.connect('message', self._message_cb)
+        self.collab.connect('joined', self._joined_cb)
+        self.collab.setup()
 
     def _setup_dispatch_table(self):
         self._processing_methods = {
@@ -92,133 +89,68 @@ class Collaboration():
             'S': self._speak
         }
 
-    def _shared_cb(self, activity):
-        self._shared_activity = self._activity.get_shared_activity()
-        if self._shared_activity is None:
-            debug_output('Failed to share or join activity ... \
-                _shared_activity is null in _shared_cb()',
-                         self._tw.running_sugar)
-            return
-
+    def _activity_shared_cb(self, activity):
         self._tw.set_sharing(True)
 
         self.initiating = True
         self.waiting_for_turtles = False
         self._tw.remote_turtle_dictionary = self._get_dictionary()
-
-        debug_output('I am sharing...', self._tw.running_sugar)
-
-        self.conn = self._shared_activity.telepathy_conn
-        self.tubes_chan = self._shared_activity.telepathy_tubes_chan
-        self.text_chan = self._shared_activity.telepathy_text_chan
-
-        self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].connect_to_signal(
-            'NewTube', self._new_tube_cb)
-
-        debug_output('This is my activity: making a tube...',
-                     self._tw.running_sugar)
-
-        self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].OfferDBusTube(
-            SERVICE, {})
         self._enable_share_button()
 
-    def _joined_cb(self, activity):
-        self._shared_activity = self._activity.get_shared_activity()
-        if self._shared_activity is None:
-            debug_output('Failed to share or join activity ... \
-                _shared_activity is null in _shared_cb()',
-                         self._tw.running_sugar)
-            return
-
+    def _activity_joined_cb(self, activity):
         self._tw.set_sharing(True)
 
         self.initiating = False
-        self.conn = self._shared_activity.telepathy_conn
-        self.tubes_chan = self._shared_activity.telepathy_tubes_chan
-        self.text_chan = self._shared_activity.telepathy_text_chan
-
-        # call back for "NewTube" signal
-        self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].connect_to_signal(
-            'NewTube', self._new_tube_cb)
-
-        debug_output('I am joining an activity: waiting for a tube...',
-                     self._tw.running_sugar)
-        self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES].ListTubes(
-            reply_handler=self._list_tubes_reply_cb,
-            error_handler=self._list_tubes_error_cb)
-
-        # Joiner should request current state from sharer.
+        # Joiner is to request current state from sharer.
         self.waiting_for_turtles = True
         self._enable_share_button()
+
+    def _joined_cb(self, collab):
+        # Now that we have the tube, we can ask for the turtle dictionary.
+        debug_output('Sending a request for the turtle dictionary',
+                     self._tw.running_sugar)
+        # We need to send our own nick, colors, and turtle position
+        colors = self._get_colors()
+        event = data_to_string([self._get_nick(), colors])
+        debug_output(event, self._tw.running_sugar)
+        self.send_event('t', event)
 
     def _enable_share_button(self):
         self._activity.share_button.set_icon_name('shareon')
         self._activity.share_button.set_tooltip(_('Share selected blocks'))
 
-    def _list_tubes_reply_cb(self, tubes):
-        for tube_info in tubes:
-            self._new_tube_cb(*tube_info)
-
-    def _list_tubes_error_cb(self, e):
-        error_output('ListTubes() failed: %s' % (e), self._tw.running_sugar)
-
-    def _new_tube_cb(self, id, initiator, type, service, params, state):
-        """ Create a new tube. """
-        debug_output(
-            'New tube: ID=%d initator=%d type=%d service=%s \
-                     params=%r state=%d' %
-            (id, initiator, type, service, params, state), self._tw.running_sugar)
-
-        if (type == telepathy.TUBE_TYPE_DBUS and service == SERVICE):
-            if state == telepathy.TUBE_STATE_LOCAL_PENDING:
-                self.tubes_chan[telepathy.CHANNEL_TYPE_TUBES]\
-                    .AcceptDBusTube(id)
-
-            self.collab = CollabWrapper(self)
-            self.collab.message.connect(self.event_received_cb)
-            self.collab.setup()
-
-            # Now that we have the tube, we can ask for the turtle dictionary.
-            if self.waiting_for_turtles:  # A joiner must wait for turtles.
-                debug_output('Sending a request for the turtle dictionary',
-                             self._tw.running_sugar)
-                # We need to send our own nick, colors, and turtle position
-                colors = self._get_colors()
-                event = data_to_string([self._get_nick(), colors])
-                debug_output(event, self._tw.running_sugar)
-                self.send_event("t", {"payload": event})
-
-    def event_received_cb(self, colab, buddy, msg):
+    def _message_cb(self, colab, buddy, msg):
         """
-        Events are sent as a tuple, nick|cmd, where nick is a turle name
-        and cmd is a turtle event. Everyone gets the turtle dictionary from
-        the sharer and watches for 't' events, which indicate that a new
-        turtle has joined.
+        Events are sent as action and payload.  Everyone gets the
+        turtle dictionary from the sharer and watches for 't' events,
+        which indicate that a new turtle has joined.
         """
-        if len(event_message) == 0:
+
+        action = msg.get('action')
+
+        if action in self._processing_methods:
+            save_active_turtle = self._tw.turtles.get_active_turtle()
+            self._processing_methods[action](msg.get('event'))
+            self._tw.turtles.set_turtle(
+                self._tw.turtles.get_turtle_key(save_active_turtle))
             return
 
-       # Save active Turtle
-        save_active_turtle = self._tw.turtles.get_active_turtle()
+        if action == '!!ACTION_INIT_REQUEST':
+            return
 
-        command = msg.get("msg")
-        payload = msg.get("payload")
-        self._processing_methods[command](payload)
+        error_output('unhandled action %r' % action)
 
-        # Restore active Turtle
-        self._tw.turtles.set_turtle(
-            self._tw.turtles.get_turtle_key(save_active_turtle))
-
-    def send_event(self, message, payload):
+    def send_event(self, action, event):
         """ Send event through the tube. """
-        if hasattr(self, 'chattube') and self.chattube is not None:
-            payload["msg"] = message
-            self.chattube.post(payload)
+        event = {'action': action, 'event': event}
+
+        self.collab.post(event)
 
     def _turtle_request(self, payload):
         ''' incoming turtle from a joiner '''
-        if payload > 0:
+        if len(payload) > 0:
             [nick, colors] = data_from_string(payload)
+            # FIXME: nick may not be unique, use buddy hash
             if nick != self._tw.nick:  # It is not me.
                 # There may not be a turtle dictionary.
                 if hasattr(self._tw, 'remote_turtle_dictionary'):
@@ -239,8 +171,8 @@ class Collaboration():
             if self._tw.nick not in self._tw.remote_turtle_dictionary:
                 self._tw.remote_turtle_dictionary[self._tw.nick] = \
                     self._get_colors()
-            event_payload = data_to_string(self._tw.remote_turtle_dictionary)
-            self.send_event("T", {"payload": event_payload})
+            event = data_to_string(self._tw.remote_turtle_dictionary)
+            self.send_event('T', event)
             self.send_my_xy()  # And the sender should report her xy position.
 
     def _receive_turtle_dict(self, payload):
@@ -276,21 +208,21 @@ class Collaboration():
         used to sync positions after turtle drag. '''
         self._tw.turtles.set_turtle(self._get_nick())
         if self._tw.turtles.get_active_turtle().get_pen_state():
-            self.send_event("p", {"payload": data_to_string([self._get_nick(),
-                                                             False])})
+            self.send_event('p', data_to_string([self._get_nick(), False]))
             put_pen_back_down = True
         else:
             put_pen_back_down = False
-        self.send_event("x",
-                        {"payload": data_to_string([self._get_nick(),
-                                                    [int(self._tw.turtles.get_active_turtle().get_xy()[0]),
-                                                     int(self._tw.turtles.get_active_turtle().get_xy()[1])]])})
+        self.send_event(
+            'x', data_to_string(
+                [self._get_nick(),
+                 [int(self._tw.turtles.get_active_turtle().get_xy()[0]),
+                  int(self._tw.turtles.get_active_turtle().get_xy()[1])]]))
         if put_pen_back_down:
-            self.send_event("p", {"payload": data_to_string([self._get_nick(),
-                                                             True])})
-        self.send_event("r", {"payload": data_to_string(
-            [self._get_nick(),
-             int(self._tw.turtles.get_active_turtle().get_heading())])})
+            self.send_event('p', data_to_string([self._get_nick(), True]))
+        self.send_event(
+            'r', data_to_string(
+                [self._get_nick(),
+                 int(self._tw.turtles.get_active_turtle().get_heading())]))
 
     def _reskin_turtle(self, payload):
         if len(payload) > 0:
@@ -422,8 +354,14 @@ class Collaboration():
             if language_option == 'None':
                 language_option = ''
             if text is not None:
-                os.system('espeak %s "%s" --stdout | aplay' %
-                          (language_option, str(text)))
+                if self._tw.running_sugar:
+                    from sugar3.speech import SpeechManager
+                    sm = SpeechManager()
+                    sm.say_text(text)
+                else:
+                    os.system(
+                        'espeak %s "%s" --stdout | aplay' %
+                        (language_option, str(text)))
 
     def _paste(self, payload):
         if len(payload) > 0:
@@ -450,27 +388,3 @@ class Collaboration():
             colors = '%s,%s' % (DEFAULT_TURTLE_COLORS[0],
                                 DEFAULT_TURTLE_COLORS[1])
         return colors.split(',')
-
-
-class ChatTube(ExportedGObject):
-
-    def __init__(self, tube, is_initiator, stack_received_cb):
-        """Class for setting up tube for sharing."""
-        super(ChatTube, self).__init__(tube, PATH)
-        self.tube = tube
-        self.is_initiator = is_initiator  # Are we sharing or joining activity?
-        self.stack_received_cb = stack_received_cb
-        self.stack = ''
-
-        self.tube.add_signal_receiver(self.send_stack_cb, 'SendText', IFACE,
-                                      path=PATH, sender_keyword='sender')
-
-    def send_stack_cb(self, text, sender=None):
-        if sender == self.tube.get_unique_name():
-            return
-        self.stack = text
-        self.stack_received_cb(text)
-
-    @signal(dbus_interface=IFACE, signature='s')
-    def SendText(self, text):
-        self.stack = text

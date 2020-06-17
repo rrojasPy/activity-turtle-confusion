@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import ConfigParser
+import configparser
 from gettext import gettext as _
 import os
 import shutil
@@ -73,7 +73,7 @@ def complete_plugin_install(cls, tmp_dir, tmp_path, plugin_path,
                         None,
                         arg=j - 1))
                 cls._overflow_box.pack_start(
-                    cls._overflow_buttons[j - 1])
+                    cls._overflow_buttons[j - 1], True, True, 0)
                 cls.tw.palettes.insert(j - 1, [])
                 cls.tw.palette_sprs.insert(j - 1, [None, None])
             else:
@@ -86,8 +86,9 @@ def complete_plugin_install(cls, tmp_dir, tmp_path, plugin_path,
                 cls._overflow_buttons[pidx].connect(
                     'clicked', cls.do_palette_buttons_cb, j - 1)
                 cls._setup_palette_toolbar()
-        l = _('Please restart %s in order to use the plugin.') % cls.name
-        cls.tw.showlabel('status', l)
+        cls.tw.showlabel(
+            'status',
+            _('Please restart %s in order to use the plugin.') % cls.name)
 
     else:
         cls.tw.showlabel('status', _('Plugin could not be installed.'))
@@ -98,7 +99,7 @@ def complete_plugin_install(cls, tmp_dir, tmp_path, plugin_path,
 def load_a_plugin(cls, tmp_dir):
     ''' Load a plugin from the Journal and initialize it '''
     plugin_path = os.path.join(tmp_dir, 'plugin.info')
-    file_info = ConfigParser.ConfigParser()
+    file_info = configparser.ConfigParser()
     if len(file_info.read(plugin_path)) == 0:
         cls.tw.showlabel('status', _('Plugin could not be installed.'))
     elif not file_info.has_option('Plugin', 'name'):
